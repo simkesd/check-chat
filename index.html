@@ -1,0 +1,64 @@
+<html>
+<head>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font: 13px Helvetica, Arial; }
+        form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+        form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+        form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+        #messages { list-style-type: none; margin: 0; padding: 0; }
+        #messages li { padding: 5px 10px; }
+        #messages li:nth-child(odd) { background: #eee; }
+    </style>
+</head>
+<body>
+<div>
+    <div>Number of connected users: <span id="num-of-users"></span></div>
+    <div id="list-of-users">List of users: <span id="actual-list"></span></div>
+</div>
+<ul id="messages">
+
+</ul>
+<form id="send-form" action="">
+    <input type="text" id="message" autocomplete="off"/><button>Send</button>
+</form>
+
+<script src="socket.io/socket.io.js"></script>
+<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+<script src="cookies.js"></script>
+<script>
+    (function() {
+        var user = cookies.checkCookie();
+
+//        var socket = io('http://localhost:3000/app', {'forceNew':false});
+        var socket = io('http://localhost:3000/app');
+
+        socket.emit('username', user);
+
+        $("#send-form").submit(function() {
+            var obj = {
+                message: $('#message').val(),
+                user: cookies.getCookie('username')
+            };
+
+            socket.emit('chat message', obj);
+            $("#message").val('');
+            return false;
+        });
+
+        socket.on('chat message', function(obj) {
+            $("#messages").append($('<li>').text(obj.user + ": " +obj.message));
+        })
+
+        socket.on('user connected', function(data) {
+//            $("#num-of-users").text(data.numOfUsers);
+//            console.log(data);
+        });
+
+        socket.on('usernames', function(usernames) {
+            $("#actual-list").text(usernames);
+        })
+    })();
+</script>
+</body>
+</html>
