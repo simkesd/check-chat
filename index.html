@@ -37,11 +37,8 @@
 <script src="cookies.js"></script>
 <script>
     (function() {
-        $('.room').on('click', function() {
-            $('.room.active-room').removeClass('active-room');
-            $(this).addClass('active-room');
-        });
-        
+        console.log(window.host);
+
         var user = cookies.checkCookie();
 
         var socket = io('http://localhost:3000/app');
@@ -73,11 +70,32 @@
 
         socket.on('usernames', function(usernames) {
             $("#actual-list").text(usernames);
-        })
+        });
 
         socket.on('num of users', function(numOfUsers) {
             $("#num-of-users").text(numOfUsers);
+        });
+
+        $('.room').on('click', function() {
+            var oldRoomName = $('.room.active-room').text();
+
+            $('.room.active-room').removeClass('active-room');
+            $(this).addClass('active-room');
+            var roomName = $(this).text();
+
+            var data = {
+                newRoomName: roomName,
+                oldRoomName: oldRoomName
+            }
+            socket.emit('change room', data);
+        });
+
+        socket.on('change room', function(data) {
+            console.log(data.numOfUsers);
+            console.log(data.usernames);
+            console.log(data.room);
         })
+
     })();
 </script>
 </body>

@@ -13,27 +13,54 @@ http.listen(3000, function() {
 
 var nsp = io.of('/app');
 
-var check_chat = { // Start of refactoring
+var checkChat = { // Start of refactoring
     sessions: [],
     users: {},
-    usernames: {},
-    rooms: {
-        public: "public_room",
-        naughty: "naughty_room",
-        programming: "programming_room",
-        eli5: "eli5_room"
+    socketsToUsernames: {},
+    roomsNew: {
+        public: {
+            key_name: 'public',
+            name: "public_room",
+            users: {}
+        },
+        naughty: {
+            key_name: 'naughty',
+            name: "naughty_room",
+            users: {}
+        }
     },
-    numOfUsers: function() {
-        return Object.keys(this.users).length;
+    addUserToRoom: function(username, socketId, room) {
+        console.log('adding "' + username + '" to ' + '"' + room + '"');
+
+        this.socketsToUsernames[socketId] = username;
+        this.roomsNew[room].users[username] = {
+            username: username,
+            socketId: socketId
+        }
     },
-    allUsersString: function() {
+    removeUserFromRoom: function(socketId, room) {
+        console.log('removing "' + this.getUsernameFromSocketId(socketId) + '" from ' + '"' + room + '"');
+
+        delete this.roomsNew[room].users[checkChat.getUsernameFromSocketId(socketId)];
+        delete this.socketsToUsernames[socketId];
+        //delete this.
+    },
+    getUsernameFromSocketId: function(socketId) {
+        return this.socketsToUsernames[socketId];
+    },
+    numOfUsersInCurentRoom: function(room) {
+        var keys = Object.keys(this.roomsNew[room].users);
+        return keys.length;
+    },
+    getUsernamesFromRoom: function(room) {
         var usersString = "";
-        var keys = Object.keys(this.users);
-        for(var i = 0; i < kkeys.length; i++) {
+        var keys = Object.keys(this.roomsNew[room].users);
+
+        for(var i = 0; i < keys.length; i++) {
             if(usersString !== "") {
                 usersString += ", ";
             }
-            usersString += this.users[keys[i]];
+            usersString += this.roomsNew[room].users[keys[i]].username;
         }
         return usersString;
     },
@@ -41,37 +68,16 @@ var check_chat = { // Start of refactoring
         return false;
     },
     disableSoundForSocket: function(socketId) {
-
+        return false;
     }
 };
 
-var sessions = [];
-var users = {};
-var usernames = {};
-
 nsp.on('connection', function(socket){
 
-    socket.join('test_room');
-
-    console.log(nsp.adapter.rooms.test_room);
-    //numOfClients: Object.keys(nsp.adapter.rooms['test_room']).length,
-    //nsp.emit('user connected', Object.keys(nsp.adapter.rooms['test_room']).length)
-    //console.log(Object.keys(nsp.adapter.rooms['test_room']).length);
-
     socket.on('disconnect', function() {
-        delete users[socket.id];
-
-        var userstemp = "";
-        var keys = Object.keys(users);
-        for(var i = 0; i < keys.length; i++) {
-            if(userstemp !== "") {
-                userstemp += ', ';
-            }
-            userstemp += ', ' + users[keys[i]].username;
-        }
-
-        nsp.emit('num of users', Object.keys(users).length);
-        nsp.emit('usernames', userstemp);
+        checkChat.removeUserFromRoom(socket.id, 'public');
+        //nsp.emit('num of users', checkChat.numOfUsers());
+        //nsp.emit('usernames', checkChat.allUsersString());
     });
 
     socket.on('chat message', function(obj){
@@ -79,23 +85,28 @@ nsp.on('connection', function(socket){
     });
 
     socket.on('username', function(username) {
-        users[username] = {
-            username: username,
-            socketId: socket.id
+
+        checkChat.addUserToRoom(username, socket.id, checkChat.roomsNew.public.key_name);
+        socket.join(checkChat.roomsNew.public.name);
+
+        nsp.emit('num of users', checkChat.numOfUsersInCurentRoom(checkChat.roomsNew.public.key_name));
+        nsp.emit('usernames', checkChat.getUsernamesFromRoom(checkChat.roomsNew.public.key_name));
+    });
+
+    socket.on('change room', function(data) {
+        //socket.leave(socket.room);
+        //socket.join(room);
+
+        var username = checkChat.getUsernameFromSocketId(socket.id);
+        checkChat.removeUserFromRoom(socket.id, checkChat.roomsNew[data.oldRoomName].key_name);
+        checkChat.addUserToRoom(username, socket.id, data.newRoomName);
+
+        newData = {
+            room: data.newRoomName,
+            numOfUsers: checkChat.numOfUsersInCurentRoom(data.newRoomName),
+            usernames: checkChat.getUsernamesFromRoom(data.newRoomName)
         };
-
-        var userstemp = "";
-        var keys = Object.keys(users);
-        for(var i = 0; i < keys.length; i++) {
-            if(userstemp !== "") {
-                userstemp += ', ';
-            }
-            userstemp += users[keys[i]].username;
-        }
-
-        nsp.emit('num of users', Object.keys(users).length);
-        nsp.emit('usernames', userstemp);
-        //console.log(users);
+        nsp.emit('change room', newData);
     });
 
 });
