@@ -13,6 +13,38 @@ http.listen(3000, function() {
 
 var nsp = io.of('/app');
 
+var check_chat = { // Start of refactoring
+    sessions: [],
+    users: {},
+    usernames: {},
+    rooms: {
+        public: "public_room",
+        naughty: "naughty_room",
+        programming: "programming_room",
+        eli5: "eli5_room"
+    },
+    numOfUsers: function() {
+        return Object.keys(this.users).length;
+    },
+    allUsersString: function() {
+        var usersString = "";
+        var keys = Object.keys(this.users);
+        for(var i = 0; i < kkeys.length; i++) {
+            if(usersString !== "") {
+                usersString += ", ";
+            }
+            usersString += this.users[keys[i]];
+        }
+        return usersString;
+    },
+    enableSoundForSocket: function(socketId) {
+        return false;
+    },
+    disableSoundForSocket: function(socketId) {
+
+    }
+};
+
 var sessions = [];
 var users = {};
 var usernames = {};
@@ -21,6 +53,7 @@ nsp.on('connection', function(socket){
 
     socket.join('test_room');
 
+    console.log(nsp.adapter.rooms.test_room);
     //numOfClients: Object.keys(nsp.adapter.rooms['test_room']).length,
     //nsp.emit('user connected', Object.keys(nsp.adapter.rooms['test_room']).length)
     //console.log(Object.keys(nsp.adapter.rooms['test_room']).length);
@@ -37,6 +70,7 @@ nsp.on('connection', function(socket){
             userstemp += ', ' + users[keys[i]].username;
         }
 
+        nsp.emit('num of users', Object.keys(users).length);
         nsp.emit('usernames', userstemp);
     });
 
@@ -59,6 +93,7 @@ nsp.on('connection', function(socket){
             userstemp += users[keys[i]].username;
         }
 
+        nsp.emit('num of users', Object.keys(users).length);
         nsp.emit('usernames', userstemp);
         //console.log(users);
     });
