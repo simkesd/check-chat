@@ -58,7 +58,7 @@
         };
         var username = prompt("Please enter your name:", "user#" + Math.floor((Math.random() * 100) + 1));
 
-        var socket = io('http://localhost:3000/app');
+        var socket = io('http://localhost:3000/app', {'forceNew':true });
 //        var socket = io('http://happyfist.co:3000/app');
 
         socket.emit('set username', username);
@@ -81,13 +81,20 @@
 
         socket.on('error', function(data) {
             console.log(data);
-            alert(data.userNameInUse);
+            if(data.message) {
+                client.addServerMessage("Error: " + data.message);
+            }
         });
 
         socket.on('message', function(data) {
             client.addChatMessage(data);
             // Todo : on current tab unfocused write message in title bar
             // Todo : on current tab focused remove message from title bar
+        });
+
+        socket.on('num of users changed', function(data) {
+            console.log(data);
+            client.changeNumberOfUsers(data.numOfUsers);
         });
 
 
